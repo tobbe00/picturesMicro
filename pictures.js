@@ -2,9 +2,13 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const cors = require('cors');  // Add this line to import CORS
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
+
+// Enable CORS for all routes (or specify only allowed origins)
+app.use(cors());  // Add this line to enable CORS
 
 // Ensure uploads directory exists
 const uploadPath = path.join(__dirname, 'uploads');
