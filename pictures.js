@@ -2,13 +2,13 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const cors = require('cors');  // Add this line to import CORS
+const cors = require('cors');  // Import CORS
 
 const app = express();
 const PORT = process.env.PORT || 3001;
 
 // Enable CORS for all routes (or specify only allowed origins)
-app.use(cors());  // Add this line to enable CORS
+app.use(cors());  // Enable CORS for all routes
 
 // Ensure uploads directory exists
 const uploadPath = path.join(__dirname, 'uploads');
@@ -23,11 +23,11 @@ const storage = multer.diskStorage({
     },
     filename: (req, file, cb) => {
         const uniqueName = `${Date.now()}-${file.originalname}`;
-        cb(null, uniqueName); // File name will be timestamped
+        cb(null, uniqueName); // File name will be timestamped to avoid duplicates
     },
 });
 
-// Configure multer
+// Configure multer with limits and file filter
 const upload = multer({
     storage,
     limits: {
@@ -46,19 +46,20 @@ const upload = multer({
 });
 
 // Routes
-// Upload a file
+// POST route to upload an image
 app.post('/images', upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
 
+    // Respond with the path to the uploaded image
     res.json({
         message: 'Image uploaded successfully',
         filePath: `/images/${req.file.filename}`,
     });
 });
 
-// Get a list of all saved image names
+// GET route to list all uploaded images
 app.get('/images', (req, res) => {
     fs.readdir(uploadPath, (err, files) => {
         if (err) {
@@ -77,13 +78,13 @@ app.get('/images', (req, res) => {
     });
 });
 
-// Serve images statically
+// Serve images statically (to be accessed by URL)
 app.use('/images', express.static(uploadPath));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
-        // Handle multer-specific errors
+        // Handle Multer-specific errors (e.g., file size issues)
         return res.status(400).json({ error: err.message });
     } else if (err) {
         // Handle other errors
