@@ -7,8 +7,13 @@ const cors = require('cors');  // Import CORS
 const app = express();
 const PORT = process.env.PORT || 8080;
 
-// Enable CORS for all routes (or specify only allowed origins)
-app.use(cors());  // Enable CORS for all routes
+const corsOptions = {
+    origin: 'https://labb2frontend.app.cloud.cbh.kth.se', // Tillåt endast din frontend
+    methods: ['GET', 'POST'], // Endast GET och POST
+    allowedHeaders: ['Content-Type'], // Endast Content-Type header
+    credentials: true, // Om cookies eller sessions används
+};
+app.use(cors(corsOptions));
 
 // Ensure uploads directory exists
 const uploadPath = path.join(__dirname, 'uploads');
@@ -95,5 +100,5 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Server is running on http://localhost:${PORT}`);
+    console.log(`Server is running on https://labb2frontend.app.cloud.cbh.kth.se${PORT}`);
 });
