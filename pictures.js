@@ -82,7 +82,7 @@ app.get('/images', (req, res) => {
         });
     });
 });
-
+//innanjag fukar runt
 // Serve images statically (to be accessed by URL)
 app.use('/images', express.static(uploadPath));
 
