@@ -4,7 +4,7 @@ const path = require('path');
 const fs = require('fs');
 const cors = require('cors');
 const jwt = require('jsonwebtoken'); // Import JWT for token validation
-//um push didnt work so i need to add this to try again
+
 const app = express();
 const PORT = process.env.PORT || 8080;
 
@@ -95,7 +95,7 @@ const upload = multer({
 });
 
 // Routes
-app.post('/images', validateToken, requireRole(['worker', 'user']), upload.single('image'), (req, res) => {
+app.post('/images', validateToken, requireRole(['worker', 'doctor']), upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
@@ -106,7 +106,7 @@ app.post('/images', validateToken, requireRole(['worker', 'user']), upload.singl
     });
 });
 
-app.get('/images', validateToken, requireRole(['worker', 'user']), (req, res) => {
+app.get('/images', validateToken, requireRole(['worker', 'doctor']), (req, res) => {
     fs.readdir(uploadPath, (err, files) => {
         if (err) {
             return res.status(500).json({ error: 'Could not list files' });
