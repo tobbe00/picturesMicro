@@ -17,24 +17,7 @@ const corsOptions = {
 };
 app.use(cors(corsOptions));
 
-const validateToken = (req, res, next) => {
-    const authHeader = req.headers.authorization;
 
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Unauthorized: No token provided' });
-    }
-
-    const token = authHeader.split(' ')[1];
-    jwt.verify(token, keycloakPublicKey, { algorithms: ['RS256'] }, (err, decoded) => {
-        if (err) {
-            return res.status(401).json({ error: 'Unauthorized: Invalid token' });
-        }
-
-        req.user = decoded; // Attach decoded token to request object
-        console.log('Decoded Token:', req.user);  // Debugging line
-        next();
-    });
-};
 
 // Middleware for Token Validation
 const keycloakPublicKey = `-----BEGIN PUBLIC KEY-----
