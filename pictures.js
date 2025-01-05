@@ -8,7 +8,7 @@ const app = express();
 const PORT = process.env.PORT || 8080;
 
 const corsOptions = {
-    origin: 'https://labb2frontend.app.cloud.cbh.kth.se', // Tillåt endast din frontend
+    origin: 'https://labb2frontend.app.cloud.cbh.kth.se',
     methods: ['GET', 'POST'], // Endast GET och POST
     allowedHeaders: ['Content-Type'], // Endast Content-Type header
     credentials: true, // Om cookies eller sessions används
