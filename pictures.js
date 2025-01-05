@@ -2,18 +2,65 @@ const express = require('express');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
-const cors = require('cors');  // Import CORS
+const cors = require('cors');
+const jwt = require('jsonwebtoken'); // Import JWT for token validation
 
 const app = express();
 const PORT = process.env.PORT || 8080;
 
+// CORS Configuration
 const corsOptions = {
     origin: 'https://labb2frontend.app.cloud.cbh.kth.se',
-    methods: ['GET', 'POST'], // Endast GET och POST
-    allowedHeaders: ['Content-Type'], // Endast Content-Type header
-    credentials: true, // Om cookies eller sessions används
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization'], // Include Authorization for token
+    credentials: true,
 };
 app.use(cors(corsOptions));
+
+
+
+// Middleware for Token Validation
+const keycloakPublicKey = `-----BEGIN PUBLIC KEY-----
+MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAq
+IIrf+muKn04rMtZ0N7Oc7XWms+CzYAXGSG/A+OkE3wssb
+ztRo39ilDPByycazooPeh4kFZTwCBKEZi2nuvHTw1uLhE
+vmgpHB0zk9/lEPNoRlvFZQagpOYjCyVDGCles02LQ1JgV
+jTH4sOclqxk+QayMGz1ePylUdbaZZo2vfpVxIHLetd+eI
+fmMzKPLboF7Vk6gZlaNMjQDAjklsKX4/C5x/YPy4oDGru
+hLPyyqiobJ04YyplQceNpaWcUnQImXhhWy06g0KI9GYo7
+8UkfBzDG5Gy/Qeu1colSPOsKhFbpf5qKqsTOpjmcUqQKb
+41sd4cQwy3WAugo7klkSOROiXwIDAQAB
+-----END PUBLIC KEY-----`;
+
+const validateToken = (req, res, next) => {
+    const authHeader = req.headers.authorization;
+
+    if (!authHeader || !authHeader.startsWith('Bearer ')) {
+        return res.status(401).json({ error: 'Unauthorized: No token provided' });
+    }
+
+    const token = authHeader.split(' ')[1];
+    jwt.verify(token, keycloakPublicKey, { algorithms: ['RS256'] }, (err, decoded) => {
+        if (err) {
+            return res.status(401).json({ error: 'Unauthorized: Invalid token' });
+        }
+
+        req.user = decoded; // Attach decoded token to request object
+        next();
+    });
+};
+
+// Role-Based Access Middleware
+const requireRole = (allowedRoles) => (req, res, next) => {
+    const roles = req.user?.realm_access?.roles || [];
+    console.log('Roles in Token:', roles);  // Log the roles to see if 'doctor' is included
+    const hasAccess = allowedRoles.some(role => roles.includes(role));
+
+    if (!hasAccess) {
+        return res.status(403).json({ error: 'Forbidden: Insufficient role' });
+    }
+    next();
+};
 
 // Ensure uploads directory exists
 const uploadPath = path.join(__dirname, 'uploads');
@@ -24,20 +71,17 @@ if (!fs.existsSync(uploadPath)) {
 // Configure storage for uploaded files
 const storage = multer.diskStorage({
     destination: (req, file, cb) => {
-        cb(null, uploadPath); // Files will be saved in the 'uploads' directory
+        cb(null, uploadPath);
     },
     filename: (req, file, cb) => {
         const uniqueName = `${Date.now()}-${file.originalname}`;
-        cb(null, uniqueName); // File name will be timestamped to avoid duplicates
+        cb(null, uniqueName);
     },
 });
 
-// Configure multer with limits and file filter
 const upload = multer({
     storage,
-    limits: {
-        fileSize: 5 * 1024 * 1024, // Limit file size to 5MB
-    },
+    limits: { fileSize: 5 * 1024 * 1024 },
     fileFilter: (req, file, cb) => {
         const allowedTypes = /jpeg|jpg|png|gif/;
         const mimeType = allowedTypes.test(file.mimetype);
@@ -51,21 +95,18 @@ const upload = multer({
 });
 
 // Routes
-// POST route to upload an image
-app.post('/images', upload.single('image'), (req, res) => {
+app.post('/images', validateToken, requireRole(['worker', 'doctor']), upload.single('image'), (req, res) => {
     if (!req.file) {
         return res.status(400).json({ error: 'No file uploaded' });
     }
 
-    // Respond with the path to the uploaded image
     res.json({
         message: 'Image uploaded successfully',
         filePath: `/images/${req.file.filename}`,
     });
 });
 
-// GET route to list all uploaded images
-app.get('/images', (req, res) => {
+app.get('/images', validateToken, requireRole(['worker', 'doctor']), (req, res) => {
     fs.readdir(uploadPath, (err, files) => {
         if (err) {
             return res.status(500).json({ error: 'Could not list files' });
@@ -83,16 +124,14 @@ app.get('/images', (req, res) => {
     });
 });
 
-// Serve images statically (to be accessed by URL)
+// Serve images statically
 app.use('/images', express.static(uploadPath));
 
 // Error handling middleware
 app.use((err, req, res, next) => {
     if (err instanceof multer.MulterError) {
-        // Handle Multer-specific errors (e.g., file size issues)
         return res.status(400).json({ error: err.message });
     } else if (err) {
-        // Handle other errors
         return res.status(500).json({ error: err.message });
     }
     next();
@@ -100,5 +139,5 @@ app.use((err, req, res, next) => {
 
 // Start server
 app.listen(PORT, () => {
-    console.log(`Server is running on https://labb2frontend.app.cloud.cbh.kth.se${PORT}`);
+    console.log(`Server is running on https://labb2frontend.app.cloud.cbh.kth.se:${PORT}`);
 });
