@@ -138,6 +138,11 @@ app.use((err, req, res, next) => {
 });
 
 // Start server
-app.listen(PORT, () => {
-    console.log(`Server is running on https://labb2frontend.app.cloud.cbh.kth.se:${PORT}`);
-});
+if (require.main === module) {
+    app.listen(PORT, () => {
+        console.log(`Server is running on https://labb2frontend.app.cloud.cbh.kth.se:${PORT}`);
+    });
+}
+
+module.exports = app; // Exportera appen för testning
+
